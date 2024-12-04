@@ -69,8 +69,8 @@ def bloch(psi):
 class field_z_gpu(ThreeDScene):
     def construct(self):
         # Settings
-        frame_rate = 30
-        animation_time = 30
+        frame_rate = config.frame_rate
+        animation_time = 15
 
         # set the scene
         self.set_camera_orientation(phi=5 * PI / 12, theta=PI / 6)
@@ -123,7 +123,7 @@ class field_z_gpu(ThreeDScene):
         betas = np.random.default_rng().normal(0, 0.01, amount)
         psi_0 = np.array([np.sqrt(0.7), np.sqrt(0.3)], dtype=complex)
         t_span = (0, animation_time)
-        t_eval = np.linspace(*t_span, animation_time * frame_rate)
+        t_eval = np.linspace(*t_span, int(animation_time * frame_rate))
 
         solutions = [
             solve_ivp(
@@ -142,7 +142,7 @@ class field_z_gpu(ThreeDScene):
         for solution, color in zip(solutions, colors):
             points = axes.c2p([bloch(psi) for psi in solution.y.T])
             curve = OpenGLVMobject().set_points_as_corners(points)
-            curve.set_stroke(color, 2)
+            curve.set_opacity(0)
             spins.add(curve)
 
         dots = OpenGLGroup(*(Dot3D(radius=0.05, color=color) for color in colors))
@@ -151,11 +151,20 @@ class field_z_gpu(ThreeDScene):
             for dot, spin in zip(dots, spins):
                 dot.move_to(spin.get_end())
 
+        tails = OpenGLGroup(
+            *(TracedPath(dot.get_center, dissipating_time=0.5) for dot in dots)
+        )
+
         dots.add_updater(update_dots)
+
         self.add(dots)
+        self.add(tails)
 
         self.play(
-            *(Create(spin, run_time=animation_time, rate_func=linear) for spin in spins)
+            *(
+                Create(spin, run_time=animation_time, rate_func=linear)
+                for spin in spins
+            ),
         )
 
         self.time = 0
