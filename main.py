@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from manim import *
-from manim.mobject.opengl.opengl_compatibility import ConvertToOpenGL
 from manim.opengl import (
     OpenGLGroup,
     OpenGLSurface,
@@ -66,11 +65,11 @@ def bloch(psi):
     return x, y, z
 
 
-class field_z_gpu(ThreeDScene):
+class field_z(ThreeDScene):
     def construct(self):
         # Settings
         frame_rate = config.frame_rate
-        animation_time = 15
+        animation_time = 25
 
         # set the scene
         self.set_camera_orientation(phi=5 * PI / 12, theta=PI / 6)
@@ -92,35 +91,32 @@ class field_z_gpu(ThreeDScene):
             resolution=(9, 9),
         )
 
-        self.play(Write(axes), Write(bloch_sphere))
+        time_text = ValueTracker(0)
 
-        # for animating
-        self.time = 0
+        self.add(time_text, axes)
+
+        self.play(Write(bloch_sphere))
         # add the magnetic field vector
         field_vector = Arrow(
             ORIGIN,
-            axes.c2p(B_x(self.time), B_y(self.time), B_z(self.time)),
             color=RED,
-            buff=0,
         )
-        self.add(field_vector)
 
-        def magnets(mob, dt):
-            self.time += 1
+        def magnets(mob):
             mob.put_start_and_end_on(
                 ORIGIN,
                 axes.c2p(
-                    B_x(self.time / frame_rate),
-                    B_y(self.time / frame_rate),
-                    B_z(self.time / frame_rate),
+                    B_x(time_text.get_value()),
+                    B_y(time_text.get_value()),
+                    B_z(time_text.get_value()),
                 ),
             )
 
-        field_vector.add_updater(magnets)
         # solve the schrodinger equation
 
         amount = 25
-        betas = np.random.default_rng().normal(0, 0.01, amount)
+        betas = np.random.default_rng().normal(0, 0.1, amount)
+        betas.sort()
         psi_0 = np.array([np.sqrt(0.7), np.sqrt(0.3)], dtype=complex)
         t_span = (0, animation_time)
         t_eval = np.linspace(*t_span, int(animation_time * frame_rate))
@@ -133,38 +129,43 @@ class field_z_gpu(ThreeDScene):
                 t_eval=t_eval,
                 method="RK45",
                 vectorized=True,
-            )
+                dense_output=True,
+            ).sol
             for beta in betas
         ]
         colors = color_gradient([GREEN, BLUE], amount)
 
-        spins = OpenGLVGroup()
-        for solution, color in zip(solutions, colors):
-            points = axes.c2p([bloch(psi) for psi in solution.y.T])
-            curve = OpenGLVMobject().set_points_as_corners(points)
-            curve.set_opacity(0)
-            spins.add(curve)
-
         dots = OpenGLGroup(*(Dot3D(radius=0.05, color=color) for color in colors))
+        mean_direction = Arrow(color=YELLOW)
 
         def update_dots(dots):
-            for dot, spin in zip(dots, spins):
-                dot.move_to(spin.get_end())
+            for dot, solution in zip(dots, solutions):
+                dot.move_to(axes.c2p(*bloch(solution(time_text.get_value()))))
 
         tails = OpenGLGroup(
-            *(TracedPath(dot.get_center, dissipating_time=0.5) for dot in dots)
+            *(
+                TracedPath(
+                    dot.get_center, dissipating_time=1 / gamma, stroke_color=color
+                )
+                for dot, color in zip(dots, colors)
+            )
         )
-
-        dots.add_updater(update_dots)
 
         self.add(dots)
         self.add(tails)
 
-        self.play(
-            *(
-                Create(spin, run_time=animation_time, rate_func=linear)
-                for spin in spins
-            ),
-        )
+        def update_mean(mean_dir):
+            mean_dir.put_start_and_end_on(
+                ORIGIN, np.mean(np.array([dot.get_center() for dot in dots]), axis=0)
+            )
 
-        self.time = 0
+        field_vector.add_updater(magnets, call_updater=True)
+        mean_direction.add_updater(update_mean, call_updater=True)
+        dots.add_updater(update_dots, call_updater=True)
+
+        self.add(field_vector)
+        self.add(mean_direction)
+
+        self.play(time_text.animate.increment_value(3), run_time=3, rate_func=linear)
+        self.begin_ambient_camera_rotation(omega )
+        self.play(time_text.animate.increment_value(7), run_time=7, rate_func=linear)
