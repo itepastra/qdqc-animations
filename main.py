@@ -1,13 +1,28 @@
 #!/usr/bin/env python
-from manim import *
+from manim.constants import DEGREES, ORIGIN, PI, TAU
+from manim.utils.color import BLUE, GREEN, RED, YELLOW, color_gradient
+import numpy as np
+from manim import (
+    Arrow,
+    Dot3D,
+    Rotate,
+    ThreeDAxes,
+    ThreeDScene,
+    TracedPath,
+    ValueTracker,
+    Write,
+    config,
+    linear,
+    normalize,
+    rate_functions,
+    smooth,
+)
 from manim.opengl import (
     OpenGLGroup,
     OpenGLSurface,
     OpenGLSurfaceMesh,
 )
-import numpy as np
 from scipy.integrate import solve_ivp
-
 
 # Define constants
 hbar = 1.0  # Reduced Planck's constant
@@ -24,8 +39,8 @@ def make_B(beta: float):
     def B_y(t: float) -> float:
         return 0
 
-    def B_z(t: float) -> float:
-        return 1 + beta  # Constant in this example
+    def B_z(t: float, omega: float = 0) -> float:
+        return 1 + beta + omega / (gamma * hbar)  # Constant in this example
 
     return B_x, B_y, B_z
 
@@ -67,11 +82,10 @@ class field_z(ThreeDScene):
     def construct(self):
         # Settings
         frame_rate = config.frame_rate
-        animation_time = 25
+        animation_time = 60
 
         # set the scene
         self.set_camera_orientation(phi=5 * PI / 12, theta=PI / 6)
-        phi, theta, focal, gamma, zoom = self.camera.get_value_trackers()
 
         axes = ThreeDAxes(
             x_range=[-1.5, 1.5, 0.5], y_range=[-1.5, 1.5, 0.5], z_range=[-1.5, 1.5, 0.5]
@@ -87,12 +101,14 @@ class field_z(ThreeDScene):
                 resolution=(16, 16),
             ),
             color="#ff00ff",
-            resolution=(9, 9),
+            resolution=(10, 10),
         )
 
-        time_text = ValueTracker(0)
+        time_flow = ValueTracker(0)
+        rotation_speed = ValueTracker(0)
+        mag_scale = ValueTracker(1)
 
-        self.add(time_text, axes)
+        self.add(time_flow, axes)
 
         self.play(Write(bloch_sphere))
         # add the magnetic field vector
@@ -105,16 +121,17 @@ class field_z(ThreeDScene):
             mob.put_start_and_end_on(
                 ORIGIN,
                 axes.c2p(
-                    B_x(time_text.get_value()),
-                    B_y(time_text.get_value()),
-                    B_z(time_text.get_value()),
+                    mag_scale.get_value() * B_x(time_flow.get_value()),
+                    mag_scale.get_value() * B_y(time_flow.get_value()),
+                    mag_scale.get_value()
+                    * B_z(time_flow.get_value(), rotation_speed.get_value()),
                 ),
             )
 
         # solve the schrodinger equation
 
-        amount = 25
-        betas = np.random.default_rng().normal(0, 0.1, amount)
+        amount = 10
+        betas = np.random.default_rng().normal(0, 0.03, amount)
         betas.sort()
         psi_0 = np.array([np.sqrt(0.7), np.sqrt(0.3)], dtype=complex)
         t_span = (0, animation_time)
@@ -132,14 +149,14 @@ class field_z(ThreeDScene):
             ).sol
             for beta in betas
         ]
-        colors = color_gradient([GREEN, BLUE], amount)
+        colors = color_gradient([GREEN, BLUE], len(betas))
 
         dots = OpenGLGroup(*(Dot3D(radius=0.05, color=color) for color in colors))
         mean_direction = Arrow(color=YELLOW)
 
         def update_dots(dots):
             for dot, solution in zip(dots, solutions):
-                dot.move_to(axes.c2p(*bloch(solution(time_text.get_value()))))
+                dot.move_to(axes.c2p(*bloch(solution(time_flow.get_value()))))
 
         tails = OpenGLGroup(
             *(
@@ -153,9 +170,24 @@ class field_z(ThreeDScene):
         self.add(dots)
         self.add(tails)
 
-        def update_mean(mean_dir):
-            mean_dir.put_start_and_end_on(
-                ORIGIN, np.mean(np.array([dot.get_center() for dot in dots]), axis=0)
+        def update_mean(mean_dir: Arrow):
+            (
+                mean_dir.put_start_and_end_on(
+                    ORIGIN,
+                    axes.c2p(
+                        *normalize(
+                            np.mean(
+                                np.array(
+                                    [
+                                        bloch(solution(time_flow.get_value()))
+                                        for solution in solutions
+                                    ]
+                                ),
+                                axis=0,
+                            )
+                        )
+                    ),
+                ),
             )
 
         field_vector.add_updater(magnets, call_updater=True)
@@ -165,12 +197,45 @@ class field_z(ThreeDScene):
         self.add(field_vector)
         self.add(mean_direction)
 
-        self.play(time_text.animate.increment_value(3), run_time=3, rate_func=linear)
+        self.play(time_flow.animate.increment_value(3), run_time=3, rate_func=linear)
 
-        run = 7
+        run = 12
+        mag_scale.set_value(1 / h0)
+        rotation_speed.set_value(-omega)
         self.play(
-            time_text.animate.increment_value(run),
-            theta.animate.increment_value(run * omega),
+            time_flow.animate.increment_value(run),
+            Rotate(axes, rotation_speed.get_value() * run),
+            Rotate(bloch_sphere, rotation_speed.get_value() * run),
+            run_time=run,
+            rate_func=linear,
+        )
+        self.move_camera(
+            phi=10 * DEGREES,
+            theta=0,
+            run_func=smooth,
+            run_time=1,
+        )
+
+        run = 10
+        self.play(
+            time_flow.animate.increment_value(run),
+            Rotate(axes, rotation_speed.get_value() * run),
+            Rotate(bloch_sphere, rotation_speed.get_value() * run),
+            run_time=run,
+            rate_func=linear,
+        )
+
+        self.move_camera(
+            phi=30 * DEGREES,
+            theta=0,
+            run_func=smooth,
+            run_time=1,
+        )
+        run = 5
+        self.play(
+            time_flow.animate.increment_value(run),
+            Rotate(axes, rotation_speed.get_value() * run),
+            Rotate(bloch_sphere, rotation_speed.get_value() * run),
             run_time=run,
             rate_func=linear,
         )
