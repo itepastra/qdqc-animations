@@ -4,8 +4,6 @@ from manim.opengl import (
     OpenGLGroup,
     OpenGLSurface,
     OpenGLSurfaceMesh,
-    OpenGLVGroup,
-    OpenGLVMobject,
 )
 import numpy as np
 from scipy.integrate import solve_ivp
@@ -73,6 +71,7 @@ class field_z(ThreeDScene):
 
         # set the scene
         self.set_camera_orientation(phi=5 * PI / 12, theta=PI / 6)
+        phi, theta, focal, gamma, zoom = self.camera.get_value_trackers()
 
         axes = ThreeDAxes(
             x_range=[-1.5, 1.5, 0.5], y_range=[-1.5, 1.5, 0.5], z_range=[-1.5, 1.5, 0.5]
@@ -167,5 +166,11 @@ class field_z(ThreeDScene):
         self.add(mean_direction)
 
         self.play(time_text.animate.increment_value(3), run_time=3, rate_func=linear)
-        self.begin_ambient_camera_rotation(omega )
-        self.play(time_text.animate.increment_value(7), run_time=7, rate_func=linear)
+
+        run = 7
+        self.play(
+            time_text.animate.increment_value(run),
+            theta.animate.increment_value(run * omega),
+            run_time=run,
+            rate_func=linear,
+        )

@@ -26,7 +26,7 @@
               ppkgs.numpy
               ppkgs.scipy
             ]))
-            ffmpeg-full
+            ffmpeg-headless
             wgo
           ];
 
