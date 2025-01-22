@@ -86,7 +86,7 @@ class field_z_rabi(ThreeDScene):
     def construct(self):
         # Settings
         frame_rate = config.frame_rate
-        animation_time = 60
+        animation_time = 3600
 
         # set the scene
         self.set_camera_orientation(phi=5 * PI / 12, theta=PI / 6)
@@ -177,7 +177,6 @@ class field_z_rabi(ThreeDScene):
         )
 
         self.add(dots)
-        self.add(tails)
 
         def update_mean(mean_dir: Arrow):
             (
@@ -206,161 +205,19 @@ class field_z_rabi(ThreeDScene):
 
         self.play(time_flow.animate.increment_value(3), run_time=3, rate_func=linear)
 
-        run = 12
+        run = 3500
         mag_scale.set_value(1 / h0)
-        rotation_speed.set_value(-omega)
         self.play(
             time_flow.animate.increment_value(run),
             Rotate(axes, rotation_speed.get_value() * run),
             Rotate(bloch_sphere, rotation_speed.get_value() * run),
-            run_time=run,
+            run_time=run / 100,
             rate_func=linear,
         )
 
-        run = 10
-        self.play(
-            time_flow.animate.increment_value(run),
-            Rotate(axes, rotation_speed.get_value() * run),
-            Rotate(bloch_sphere, rotation_speed.get_value() * run),
-            run_time=run,
-            rate_func=linear,
-        )
-
-        self.wait(3)
-
-
-class ft_spectroscopy(ThreeDScene):
-    def construct(self):
-        # Settings
-        frame_rate = config.frame_rate
-        animation_time = 60
-
-        cutoff = 1 / (h0 * gamma) * PI
-
-        # set the scene
-        self.set_camera_orientation(phi=5 * PI / 12, theta=PI / 6)
-
-        axes = ThreeDAxes(
-            x_range=[-1.5, 1.5, 0.5], y_range=[-1.5, 1.5, 0.5], z_range=[-1.5, 1.5, 0.5]
-        )
-
-        bloch_sphere = OpenGLSurfaceMesh(
-            OpenGLSurface(
-                lambda u, v: np.array(
-                    axes.c2p(*[np.cos(u) * np.cos(v), np.cos(u) * np.sin(v), np.sin(u)])
-                ),
-                v_range=[0, TAU],
-                u_range=[-PI / 2, PI / 2],
-                resolution=(16, 16),
-            ),
-            color="#ff00ff",
-            resolution=(10, 10),
-        )
-
-        time_flow = ValueTracker(0)
-        rotation_speed = ValueTracker(0)
-        mag_scale = ValueTracker(1)
-
-        self.add(time_flow, axes)
-
-        self.play(Write(bloch_sphere))
-        # add the magnetic field vector
-        field_vector = Arrow(
-            ORIGIN,
-            color=RED,
-        )
-
-        B_xc, _, _ = make_B(0, cutoff=cutoff)
-
-        def magnets(mob):
-            try:
-                mob.put_start_and_end_on(
-                    ORIGIN,
-                    axes.c2p(
-                        mag_scale.get_value() * B_xc(time_flow.get_value()),
-                        mag_scale.get_value() * B_y(time_flow.get_value()),
-                        mag_scale.get_value()
-                        * B_z(time_flow.get_value(), rotation_speed.get_value()),
-                    ),
-                )
-            except:
-                pass
-
-        # solve the schrodinger equation
-
-        amount = 10
-        betas = np.random.default_rng().normal(0, 0.003, amount)
-        betas.sort()
-        psi_0 = np.array([np.sqrt(1), np.sqrt(0)], dtype=complex)
-        t_span = (0, animation_time)
-        t_eval = np.linspace(*t_span, int(animation_time * frame_rate))
-
-        solutions = [
-            solve_ivp(
-                make_schrodinger(beta, cutoff),
-                t_span,
-                psi_0,
-                t_eval=t_eval,
-                method="RK45",
-                vectorized=True,
-                dense_output=True,
-            ).sol
-            for beta in betas
-        ]
-        colors = color_gradient([GREEN, BLUE], len(betas))
-
-        dots = OpenGLGroup(*(Dot3D(radius=0.05, color=color) for color in colors))
-        mean_direction = Arrow(color=YELLOW)
-
-        def update_dots(dots):
-            for dot, solution in zip(dots, solutions):
-                dot.move_to(axes.c2p(*bloch(solution(time_flow.get_value()))))
-
-        tails = OpenGLGroup(
-            *(
-                TracedPath(
-                    dot.get_center,
-                    dissipating_time=12 / (hbar * gamma),
-                    stroke_color=color,
-                )
-                for dot, color in zip(dots, colors)
-            )
-        )
-
-        self.add(dots)
         self.add(tails)
-
-        def update_mean(mean_dir: Arrow):
-            (
-                mean_dir.put_start_and_end_on(
-                    ORIGIN,
-                    axes.c2p(
-                        *np.mean(
-                            np.array(
-                                [
-                                    bloch(solution(time_flow.get_value()))
-                                    for solution in solutions
-                                ]
-                            ),
-                            axis=0,
-                        )
-                    ),
-                ),
-            )
-
-        field_vector.add_updater(magnets, call_updater=True)
-        mean_direction.add_updater(update_mean, call_updater=True)
-        dots.add_updater(update_dots, call_updater=True)
-
-        self.add(field_vector)
-        self.add(mean_direction)
-
-        self.play(time_flow.animate.increment_value(3), run_time=3, rate_func=linear)
-
-        run = cutoff - time_flow.get_value()
-
+        run = 30
         mag_scale.set_value(1 / h0)
-        rotation_speed.set_value(-omega)
         self.play(
             time_flow.animate.increment_value(run),
             Rotate(axes, rotation_speed.get_value() * run),
@@ -368,14 +225,4 @@ class ft_spectroscopy(ThreeDScene):
             run_time=run,
             rate_func=linear,
         )
-
-        run = 20
-        self.play(
-            time_flow.animate.increment_value(run),
-            Rotate(axes, rotation_speed.get_value() * run),
-            Rotate(bloch_sphere, rotation_speed.get_value() * run),
-            run_time=run,
-            rate_func=linear,
-        )
-
         self.wait(3)

@@ -25,6 +25,8 @@
               ppkgs.jupyter
               ppkgs.numpy
               ppkgs.scipy
+              ppkgs.qutip
+              ppkgs.matplotlib
             ]))
             ffmpeg-headless
             wgo
