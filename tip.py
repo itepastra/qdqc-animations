@@ -6,9 +6,9 @@ from qutip import *
 # Parameters
 b = 0.1  # Width of the Lorentzian distribution
 h = 0.5  # Driving strength along S_x
-b0 = 0  # Strength of the quantizing field
-t_max = 10000  # Maximum time for evolution
-time_steps = 200000  # Number of time steps
+b0 = 5  # Strength of the quantizing field
+t_max = 1000  # Maximum time for evolution
+time_steps = 20000  # Number of time steps
 tlist = np.linspace(0, t_max, time_steps)  # Time array
 ensemble_size = 1000  # Number of ensemble members
 
@@ -23,7 +23,7 @@ def lorentzian_noise(b, size=1):
 
 # System setup
 sx, sy, sz = sigmax(), sigmay(), sigmaz()
-psi0 = (basis(2, 0)).unit()  # Initial state: |+>
+psi0 = (basis(2, 0)).unit()  # Initial state: |0>
 print(f"Initial state: {psi0}")
 
 # Hamiltonian components
@@ -58,8 +58,11 @@ avg_observables = np.mean(observables, axis=0)
 stdev_observables = np.std(observables, axis=0)
 
 # Calculate pointer state expectations
-sx_inf = h / (h + b) * expect(sx, psi0)
-sz_inf = b / (h + b) * expect(sz, psi0)
+nx0 = h / np.sqrt(b0 * b0 + h * h)
+nz0 = b0 / np.sqrt(b0 * b0 + h * h)
+sn0 = sx * nx0 + sz * nz0
+sx_inf = nx0 * expect(sn0, psi0)
+sz_inf = nz0 * expect(sn0, psi0)
 print(f"Expected ⟨Sx⟩ -> {sx_inf}, ⟨Sz⟩ -> {sz_inf}")
 
 # Plot the results
