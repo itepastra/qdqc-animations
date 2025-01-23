@@ -18,8 +18,8 @@ parameter_sets = [
     for (b, h, b0, psi0) in list(itertools.product(bs, hs, b0s, psi0s))
 ]
 
-t_max = 1000  # Maximum time for evolution
-time_steps = 10000  # Number of time steps
+t_max = 10000  # Maximum time for evolution
+time_steps = 100000  # Number of time steps
 tlist = np.linspace(0, t_max, time_steps)  # Time array
 ensemble_size = 1000  # Number of ensemble members
 
@@ -94,6 +94,7 @@ def simulate(parameters):
     plt.plot(tlist, avg_observables[:, 2], color="g", label="⟨Sz⟩")
     plt.axhline(y=sx_inf, color="r", linestyle="--", label=f"⟨Sx⟩ → {sx_inf:.2f}")
     plt.axhline(y=sz_inf, color="g", linestyle="--", label=f"⟨Sz⟩ → {sz_inf:.2f}")
+    plt.xscale("semilog")
     plt.xlabel("Time")
     plt.ylabel("Expectation values")
     plt.title(f"b={b}, h={h}, b0={b0}")
@@ -103,7 +104,9 @@ def simulate(parameters):
         0.15, 0.5, textstr, fontsize=10, bbox=dict(facecolor="white", alpha=0.7)
     )
     plt.legend()
-    filename = f"ensemble_averaged_resonant_b_{b}_h_{h}_b0_{b0}_psi0_{psi0.full().flatten()}.png"
+    filename = (
+        f"ensemble_log_resonant_b_{b}_h_{h}_b0_{b0}_psi0_{psi0.full().flatten()}.png"
+    )
     plt.savefig(filename)
     plt.close()
     print(f"Saved plot as '{filename}'.")
