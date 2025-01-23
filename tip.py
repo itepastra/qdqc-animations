@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from datetime import datetime
 import numpy as np
 import scipy
 import matplotlib.pyplot as plt
@@ -41,6 +42,9 @@ def lorentzian_noise(b, noise, size=1):
     return noise
 
 
+timings = []
+
+
 def simulate(parameters):
     b = parameters["b"]
     h = parameters["h"]
@@ -68,6 +72,7 @@ def simulate(parameters):
     )  # Store expectation values for sx, sy, sz
 
     for i, beta in enumerate(betas):
+        start = datetime.now()
         if i % 25 == 0:
             print(
                 f"Processing ensemble (b={b}, h={h}, B0={b0}) member {i + 1}/{ensemble_size} with beta={beta}"
@@ -82,6 +87,18 @@ def simulate(parameters):
             observables[i, t, 0] = expect(sx, state)
             observables[i, t, 1] = expect(sy, state)
             observables[i, t, 2] = expect(sz, state)
+        end = datetime.now()
+        timings.append(
+            {
+                "b": b,
+                "h": h,
+                "b0": b0,
+                "noise": noise,
+                "beta": beta,
+                "start": start,
+                "end": end,
+            }
+        )
 
     print(f"Finished simulation for parameters: b={b}, h={h}, b0={b0}")
 
@@ -126,3 +143,5 @@ def simulate(parameters):
 # Use multiprocessing to run simulations in parallel
 with Pool() as pool:
     pool.map(simulate, parameter_sets)
+
+print(timings)
