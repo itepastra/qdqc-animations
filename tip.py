@@ -1,10 +1,11 @@
+#!/usr/bin/env python
 import numpy as np
 import scipy
 import matplotlib.pyplot as plt
 from qutip import *
 
 # Parameters
-b = 0.1  # Width of the Lorentzian distribution
+b = 0.001  # Width of the Lorentzian distribution
 h = 0.5  # Driving strength along S_x
 b0 = 5  # Strength of the quantizing field
 t_max = 1000  # Maximum time for evolution
@@ -23,7 +24,7 @@ def lorentzian_noise(b, size=1):
 
 # System setup
 sx, sy, sz = sigmax(), sigmay(), sigmaz()
-psi0 = (basis(2, 0)).unit()  # Initial state: |0>
+psi0 = (basis(2, 0) - basis(2, 1)).unit()  # Initial state: |0>
 print(f"Initial state: {psi0}")
 
 # Hamiltonian components
@@ -67,15 +68,18 @@ print(f"Expected ⟨Sx⟩ -> {sx_inf}, ⟨Sz⟩ -> {sz_inf}")
 
 # Plot the results
 plt.figure()
-plt.plot(tlist, avg_observables[:, 0], label="⟨Sx⟩")
-plt.plot(tlist, avg_observables[:, 1], label="⟨Sy⟩")
-plt.plot(tlist, avg_observables[:, 2], label="⟨Sz⟩")
+plt.plot(tlist, avg_observables[:, 0], color="r", label="⟨Sx⟩")
+# plt.plot(tlist, avg_observables[:, 1], label="⟨Sy⟩")
+plt.plot(tlist, avg_observables[:, 2], color="g", label="⟨Sz⟩")
 plt.axhline(y=sx_inf, color="r", linestyle="--", label=f"⟨Sx⟩ → {sx_inf:.2f}")
 plt.axhline(y=sz_inf, color="g", linestyle="--", label=f"⟨Sz⟩ → {sz_inf:.2f}")
 plt.xlabel("Time")
 plt.ylabel("Expectation values")
 plt.title("Ensemble-averaged dynamics with quasi-static noise")
 plt.legend()
-plt.savefig("ensemble_averaged_dynamics.png")
+# Add text annotations for parameters and initial state
+textstr = f"Parameters:\nb = {b}\nh = {h}\nInitial state: {psi0.full().flatten()}"
+plt.gcf().text(0.15, 0.5, textstr, fontsize=10, bbox=dict(facecolor="white", alpha=0.7))
+plt.savefig("ensemble_averaged_resonant_strong_minus.png")
 print("Saved ensemble-averaged dynamics plot as 'ensemble_averaged_dynamics.png'.")
 plt.show()
