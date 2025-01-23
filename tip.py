@@ -7,8 +7,8 @@ import itertools
 from multiprocessing import Pool
 
 bs = [0.001, 0.01, 0.1, 1.0]
-hs = [0.5, 5]
-b0s = np.linspace(0, 10, 4)
+hs = [0.5]
+b0s = [0.0]
 psi0s = [basis(2, 0), (basis(2, 0) + basis(2, 1)).unit()]
 
 # Parameters
@@ -81,8 +81,8 @@ def simulate(parameters):
     # Calculate pointer state expectations
     # nx0 = h / np.sqrt(b0 * b0 + h * h)
     # nz0 = b0 / np.sqrt(b0 * b0 + h * h)
-    nx0 = h / (b + h)
-    nz0 = b / (b + h)
+    nx0 = h / np.sqrt(b * b + h * h)
+    nz0 = b / np.sqrt(b * b + h * h)
 
     sn0 = sx * nx0 + sz * nz0
     sx_inf = nx0 * expect(sn0, psi0)
