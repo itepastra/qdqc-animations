@@ -81,8 +81,8 @@ def simulate(parameters):
     # Calculate pointer state expectations
     # nx0 = h / np.sqrt(b0 * b0 + h * h)
     # nz0 = b0 / np.sqrt(b0 * b0 + h * h)
-    nx0 = h / np.sqrt(b * b + h * h)
-    nz0 = b / np.sqrt(b * b + h * h)
+    nx0 = h / (b + h)
+    nz0 = b / (b + h)
 
     sn0 = sx * nx0 + sz * nz0
     sx_inf = expect(sn0, psi0)
