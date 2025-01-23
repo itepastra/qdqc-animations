@@ -85,8 +85,8 @@ def simulate(parameters):
     nz0 = b / (b + h)
 
     sn0 = sx * nx0 + sz * nz0
-    sx_inf = expect(sn0, psi0)
-    sz_inf = expect(sn0, psi0)
+    sx_inf = nx0 * expect(sx, psi0)
+    sz_inf = nz0 * expect(sz, psi0)
 
     # Plot the results
     plt.figure()
