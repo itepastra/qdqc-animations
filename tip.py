@@ -6,9 +6,9 @@ from qutip import *
 import itertools
 from multiprocessing import Pool
 
-bs = np.logspace(0.001, 10, 10)
+bs = [0.001, 0.01, 0.1, 1.0]
 hs = [0.5, 5]
-b0s = np.linspace(0, 10, 10)
+b0s = np.linspace(0, 10, 4)
 psi0s = [basis(2, 0), (basis(2, 0) + basis(2, 1)).unit()]
 
 # Parameters
@@ -79,8 +79,11 @@ def simulate(parameters):
     stdev_observables = np.std(observables, axis=0)
 
     # Calculate pointer state expectations
-    nx0 = h / np.sqrt(b0 * b0 + h * h)
-    nz0 = b0 / np.sqrt(b0 * b0 + h * h)
+    # nx0 = h / np.sqrt(b0 * b0 + h * h)
+    # nz0 = b0 / np.sqrt(b0 * b0 + h * h)
+    nx0 = h / (b + h)
+    nz0 = b / (b + h)
+
     sn0 = sx * nx0 + sz * nz0
     sx_inf = nx0 * expect(sn0, psi0)
     sz_inf = nz0 * expect(sn0, psi0)
@@ -100,9 +103,7 @@ def simulate(parameters):
         0.15, 0.5, textstr, fontsize=10, bbox=dict(facecolor="white", alpha=0.7)
     )
     plt.legend()
-    filename = (
-        f"ensemble_averaged_norm_b_{b}_h_{h}_b0_{b0}_psi0_{psi0.full().flatten()}.png"
-    )
+    filename = f"ensemble_averaged_resonant_b_{b}_h_{h}_b0_{b0}_psi0_{psi0.full().flatten()}.png"
     plt.savefig(filename)
     plt.close()
     print(f"Saved plot as '{filename}'.")
