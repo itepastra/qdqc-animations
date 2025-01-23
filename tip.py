@@ -97,6 +97,7 @@ def simulate(parameters):
     plt.xscale("symlog")
     plt.xlabel("Time")
     plt.ylabel("Expectation values")
+    plt.xlim(0, t_max)
     plt.title(f"b={b}, h={h}, b0={b0}")
     # Add text annotations for parameters and initial state
     textstr = f"Parameters:\nb = {b}\nh = {h}\nb0 = {b0}\nInitial state: {psi0.full().flatten()}"
