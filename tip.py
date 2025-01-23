@@ -94,10 +94,11 @@ def simulate(parameters):
     plt.plot(tlist, avg_observables[:, 2], color="g", label="⟨Sz⟩")
     plt.axhline(y=sx_inf, color="r", linestyle="--", label=f"⟨Sx⟩ → {sx_inf:.2f}")
     plt.axhline(y=sz_inf, color="g", linestyle="--", label=f"⟨Sz⟩ → {sz_inf:.2f}")
+    plt.xlim(1, t_max)
     plt.xscale("symlog")
+    plt.xlim(1, t_max)
     plt.xlabel("Time")
     plt.ylabel("Expectation values")
-    plt.xlim(0, t_max)
     plt.title(f"b={b}, h={h}, b0={b0}")
     # Add text annotations for parameters and initial state
     textstr = f"Parameters:\nb = {b}\nh = {h}\nb0 = {b0}\nInitial state: {psi0.full().flatten()}"
